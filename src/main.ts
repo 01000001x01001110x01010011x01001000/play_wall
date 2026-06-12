@@ -174,6 +174,53 @@ function gameHeader(title: string, onBack: () => void): HTMLElement {
   return header;
 }
 
+/**
+ * Inside the Tauri shell the window is frameless, so we render our own
+ * titlebar: a drag region plus pin / minimize / close buttons.
+ */
+function mountTitlebar() {
+  const tauri = window.__TAURI__;
+  if (!tauri) return;
+  const win = tauri.window.getCurrentWindow();
+
+  const bar = document.createElement("div");
+  bar.className = "titlebar";
+  bar.setAttribute("data-tauri-drag-region", "");
+
+  const title = document.createElement("span");
+  title.className = "titlebar-name";
+  title.setAttribute("data-tauri-drag-region", "");
+  title.textContent = "PlayWall";
+
+  const buttons = document.createElement("div");
+  buttons.className = "titlebar-buttons";
+
+  let pinned = false;
+  const pin = document.createElement("button");
+  pin.title = "Keep window on top";
+  pin.textContent = "📌";
+  pin.addEventListener("click", () => {
+    pinned = !pinned;
+    void win.setAlwaysOnTop(pinned);
+    pin.classList.toggle("active", pinned);
+  });
+
+  const minimize = document.createElement("button");
+  minimize.title = "Minimize";
+  minimize.textContent = "—";
+  minimize.addEventListener("click", () => void win.minimize());
+
+  const close = document.createElement("button");
+  close.title = "Hide to tray";
+  close.textContent = "✕";
+  close.addEventListener("click", () => void win.close());
+
+  buttons.append(pin, minimize, close);
+  bar.append(title, buttons);
+  document.body.prepend(bar);
+  document.body.classList.add("in-tauri");
+}
+
 /** Entry: a #room=…&game=… link goes straight into the room. */
 function route() {
   const match = location.hash.match(/room=([A-Z0-9]+)&game=(\w+)/i);
@@ -187,4 +234,5 @@ function route() {
   showHub();
 }
 
+mountTitlebar();
 route();

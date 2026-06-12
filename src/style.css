@@ -36,6 +36,63 @@ body {
   padding: 32px 20px 64px;
 }
 
+/* ---------- Titlebar (Tauri frameless window only) ---------- */
+
+.titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 14px;
+  background: rgba(15, 17, 23, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.titlebar-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.titlebar-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.titlebar-buttons button {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.85rem;
+  width: 34px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.titlebar-buttons button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.titlebar-buttons button.active {
+  color: var(--accent);
+}
+
+body.in-tauri #app {
+  padding-top: 62px;
+}
+
 /* ---------- Hub ---------- */
 
 .hub-header {

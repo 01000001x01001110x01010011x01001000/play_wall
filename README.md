@@ -11,7 +11,7 @@ link. Targets Windows and macOS.
 - [x] **Phase 2 — Online play**: WebRTC peer-to-peer rooms via
       [Trystero](https://github.com/dmotz/trystero), shareable room links,
       no server required.
-- [ ] **Phase 3 — Desktop app**: Tauri 2 shell with a tray icon and a
+- [x] **Phase 3 — Desktop app**: Tauri 2 shell with a tray icon and a
       borderless popup game window.
 - [ ] **Phase 4 — Wallpaper layer**: static infographic wallpaper (play
       stats, clock, user quote) with a desktop play icon. Per-OS native glue.
@@ -21,9 +21,15 @@ link. Targets Windows and macOS.
 
 ```sh
 npm install
-npm run dev      # dev server at http://localhost:5173
-npm run build    # typecheck + production build into dist/
+npm run dev          # web version at http://localhost:5173
+npm run build        # typecheck + production build into dist/
+npm run tauri dev    # desktop app (requires Rust: https://rustup.rs)
+npm run tauri build  # installable desktop bundle
 ```
+
+> Note: `time` is pinned to 0.3.47 in src-tauri/Cargo.lock — 0.3.48 breaks
+> the build with E0119 trait-conflict errors in `cookie`/`tauri-utils`.
+> Don't `cargo update` it until those crates ship fixed releases.
 
 ## Code layout
 
