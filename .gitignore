@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# Tauri / Rust build output
+src-tauri/target/
+
+# editor & OS noise
+.DS_Store
+*.local

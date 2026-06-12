@@ -1,0 +1,375 @@
+:root {
+  --bg: #0f1117;
+  --surface: #181c26;
+  --surface-2: #222836;
+  --border: #2e3648;
+  --text: #e8ecf4;
+  --text-dim: #8b94a7;
+  --accent: #4f8cff;
+  --accent-2: #9b6bff;
+  --good: #3ddc84;
+  --bad: #ff5470;
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(1200px 800px at 70% -10%, #1a2030 0%, var(--bg) 55%);
+  color: var(--text);
+  font-family: "Avenir Next", "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+/* ---------- Hub ---------- */
+
+.hub-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.hub-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hub-sub {
+  color: var(--text-dim);
+  margin-bottom: 28px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.game-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 18px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.game-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+}
+
+.game-card .icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.game-card .name {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+
+.game-card .tagline {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+/* ---------- Mode picker ---------- */
+
+.mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 380px;
+}
+
+.mode-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.mode-btn:hover {
+  border-color: var(--accent);
+}
+
+.mode-btn small {
+  display: block;
+  margin-top: 3px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+/* ---------- Game screen chrome ---------- */
+
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.back-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  border-color: var(--accent);
+}
+
+.game-header h2 {
+  font-size: 1.3rem;
+  font-weight: 650;
+}
+
+.game-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.status-line {
+  font-size: 1.05rem;
+  font-weight: 600;
+  min-height: 1.5em;
+}
+
+.status-line.good {
+  color: var(--good);
+}
+
+.status-line.bad {
+  color: var(--bad);
+}
+
+.action-btn {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 22px;
+  cursor: pointer;
+}
+
+.action-btn:hover {
+  filter: brightness(1.1);
+}
+
+.hint {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
+/* ---------- Online room ---------- */
+
+.room-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 26px;
+  max-width: 520px;
+  width: 100%;
+}
+
+.link-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.link-row input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 10px 12px;
+}
+
+/* ---------- Board games (shared grid) ---------- */
+
+.board {
+  display: grid;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.cell {
+  width: 76px;
+  height: 76px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 2rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s ease;
+}
+
+.cell:not(:disabled):hover {
+  background: #2b3344;
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.cell.win {
+  background: rgba(61, 220, 132, 0.18);
+  border-color: var(--good);
+}
+
+.cell.p1 {
+  color: var(--accent);
+}
+
+.cell.p2 {
+  color: var(--bad);
+}
+
+.board.small-cells .cell {
+  width: 54px;
+  height: 54px;
+  font-size: 1.4rem;
+  border-radius: 8px;
+}
+
+/* ---------- Snake ---------- */
+
+canvas.snake-canvas {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.snake-stats {
+  display: flex;
+  gap: 26px;
+  font-weight: 600;
+}
+
+.snake-stats span {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* ---------- Mini chess ---------- */
+
+.chess-board {
+  display: grid;
+  grid-template-columns: repeat(6, 64px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.chess-sq {
+  width: 64px;
+  height: 64px;
+  border: none;
+  font-size: 2.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0;
+}
+
+.chess-sq.light {
+  background: #3a4458;
+}
+
+.chess-sq.dark {
+  background: #232a3a;
+}
+
+.chess-sq.selected {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.chess-sq.target::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(79, 140, 255, 0.55);
+}
+
+.chess-sq.capture::after {
+  width: 52px;
+  height: 52px;
+  background: transparent;
+  border: 3px solid rgba(255, 84, 112, 0.7);
+}
+
+.chess-sq .pc-w {
+  color: #f4f6fb;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.chess-sq .pc-b {
+  color: #11141c;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.25);
+}
