@@ -34,7 +34,6 @@ fn create_icon_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         .resizable(false)
         .decorations(false)
         .transparent(true)
-        .always_on_top(true)
         .skip_taskbar(true)
         .shadow(false)
         .build()?;
@@ -47,7 +46,34 @@ fn create_icon_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         let _ = win.set_size(LogicalSize::new(ICON_WINDOW, ICON_WINDOW));
         let _ = win.set_position(LogicalPosition::new(x, y));
     }
+
+    // Sink the icon into the desktop: above the wallpaper, below normal windows.
+    #[cfg(target_os = "macos")]
+    embed_icon_in_desktop(&win);
+
     Ok(())
+}
+
+/// Drop the icon window to desktop level so it behaves like part of the
+/// wallpaper — visible on the bare desktop and clickable, but hidden behind
+/// any normal app window that covers it. Pinned across all Spaces.
+#[cfg(target_os = "macos")]
+fn embed_icon_in_desktop(window: &tauri::WebviewWindow) {
+    use objc::{msg_send, runtime::Object, sel, sel_impl};
+
+    let ptr = match window.ns_window() {
+        Ok(p) => p as *mut Object,
+        Err(_) => return,
+    };
+    unsafe {
+        // one level below normal windows (level 0); still well above the
+        // wallpaper and the desktop-icon layer, so clicks reach the button
+        let level: isize = -1;
+        let _: () = msg_send![ptr, setLevel: level];
+        // CanJoinAllSpaces | Stationary | IgnoresCycle — sticks to the desktop
+        let behavior: usize = (1 << 0) | (1 << 4) | (1 << 6);
+        let _: () = msg_send![ptr, setCollectionBehavior: behavior];
+    }
 }
 
 /// Decode the PNG the frontend generated, save it under the app's data dir,
