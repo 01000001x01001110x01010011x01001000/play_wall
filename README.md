@@ -14,10 +14,14 @@ link. Targets Windows and macOS.
 - [x] **Phase 3 — Desktop app**: Tauri 2 shell with a tray icon and a
       borderless popup game window.
 - [~] **Phase 4 — Wallpaper layer**: infographic wallpaper renderer (clock,
-      quote, play stats) with a settings/preview screen, and a Rust command
-      that sets it as the desktop wallpaper (**macOS done**; Windows pending).
-      Still to do: the always-on-top desktop play icon.
-- [ ] **Phase 5 — Polish**: themes, launch at startup, Windows wallpaper glue.
+      quote, play stats) with a settings/preview screen, a Rust command that
+      sets it as the desktop wallpaper (**macOS done**; Windows pending), and a
+      proximity-reveal desktop play icon (a transparent always-on-top window
+      that stays submerged until the cursor nears it, then rises and opens the
+      games). Remaining: embed the icon at true desktop level (below other
+      windows) via native macOS window-level code.
+- [ ] **Phase 5 — Polish**: desktop-level icon embedding, themes, launch at
+      startup, Windows wallpaper glue.
 
 ## Development
 

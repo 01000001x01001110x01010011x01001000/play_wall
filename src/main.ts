@@ -382,6 +382,34 @@ function mountTitlebar() {
   document.body.classList.add("in-tauri");
 }
 
+/**
+ * The desktop play icon. This page is loaded in its own tiny transparent
+ * always-on-top Tauri window (label "icon"). The icon sits submerged — faint
+ * and shrunk — and rises (brightens, scales up, gains a shadow) when the
+ * cursor moves into the window. Clicking it opens the main game window.
+ */
+function renderIcon() {
+  document.body.classList.add("icon-mode");
+  app.innerHTML = "";
+
+  // a transparent sensing area filling the window so the icon reacts as soon
+  // as the cursor gets near it, not only when directly over the button
+  const sense = document.createElement("div");
+  sense.className = "icon-sense";
+
+  const btn = document.createElement("button");
+  btn.className = "floating-play";
+  btn.textContent = "▶";
+  btn.title = "Play games";
+  btn.style.background = `linear-gradient(135deg, ${getSettings().accent}, #9b6bff)`;
+  btn.addEventListener("click", () => {
+    void window.__TAURI__?.core.invoke("show_main");
+  });
+
+  sense.appendChild(btn);
+  app.appendChild(sense);
+}
+
 /** Entry: a #room=…&game=… link goes straight into the room. */
 function route() {
   const match = location.hash.match(/room=([A-Z0-9]+)&game=(\w+)/i);
@@ -395,5 +423,9 @@ function route() {
   showHub();
 }
 
-mountTitlebar();
-route();
+if (location.hash.includes("icon")) {
+  renderIcon();
+} else {
+  mountTitlebar();
+  route();
+}

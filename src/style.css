@@ -260,6 +260,64 @@ body.in-tauri #app {
   font-size: 0.85rem;
 }
 
+/* ---------- Desktop play icon (its own transparent window) ---------- */
+
+body.icon-mode {
+  background: transparent;
+  overflow: hidden;
+}
+
+body.icon-mode #app {
+  max-width: none;
+  padding: 0;
+  margin: 0;
+  height: 100vh;
+}
+
+.icon-sense {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.floating-play {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  padding-left: 3px; /* optically center the ▶ glyph */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* submerged: faint, shrunk, desaturated, flush with the wallpaper */
+  opacity: 0.3;
+  transform: scale(0.78);
+  filter: saturate(0.55);
+  box-shadow: none;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    filter 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* cursor enters the window region -> the icon rises and lights up */
+.icon-sense:hover .floating-play {
+  opacity: 1;
+  transform: scale(1);
+  filter: saturate(1);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
+}
+
+.icon-sense:hover .floating-play:active {
+  transform: scale(0.92);
+}
+
 /* ---------- Hub header / wallpaper button ---------- */
 
 .hub-header {

@@ -3,7 +3,7 @@ use std::path::Path;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Manager,
+    LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
 fn show_main_window(app: &tauri::AppHandle) {
@@ -11,6 +11,43 @@ fn show_main_window(app: &tauri::AppHandle) {
         let _ = window.show();
         let _ = window.set_focus();
     }
+}
+
+/// Called by the floating desktop icon when clicked.
+#[tauri::command]
+fn show_main(app: tauri::AppHandle) {
+    show_main_window(&app);
+}
+
+/// Size of the floating-icon window. It's larger than the icon glyph so the
+/// icon can sense the cursor approaching (the proximity reveal) before the
+/// pointer is directly over it.
+const ICON_WINDOW: f64 = 150.0;
+const ICON_MARGIN: f64 = 28.0;
+
+/// Create the small transparent always-on-top window that hosts the desktop
+/// play icon, positioned at the bottom-right of the primary display.
+fn create_icon_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let win = WebviewWindowBuilder::new(app, "icon", WebviewUrl::App("index.html#icon".into()))
+        .title("PlayWall")
+        .inner_size(ICON_WINDOW, ICON_WINDOW)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .shadow(false)
+        .build()?;
+
+    if let Ok(Some(monitor)) = win.primary_monitor() {
+        let scale = monitor.scale_factor();
+        let screen = monitor.size().to_logical::<f64>(scale);
+        let x = screen.width - ICON_WINDOW - ICON_MARGIN;
+        let y = screen.height - ICON_WINDOW - ICON_MARGIN;
+        let _ = win.set_size(LogicalSize::new(ICON_WINDOW, ICON_WINDOW));
+        let _ = win.set_position(LogicalPosition::new(x, y));
+    }
+    Ok(())
 }
 
 /// Decode the PNG the frontend generated, save it under the app's data dir,
@@ -104,9 +141,11 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            create_icon_window(app.handle())?;
+
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![set_wallpaper])
+        .invoke_handler(tauri::generate_handler![set_wallpaper, show_main])
         .on_window_event(|window, event| {
             // closing the window just hides it; the app stays in the tray
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
