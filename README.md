@@ -13,9 +13,11 @@ link. Targets Windows and macOS.
       no server required.
 - [x] **Phase 3 — Desktop app**: Tauri 2 shell with a tray icon and a
       borderless popup game window.
-- [ ] **Phase 4 — Wallpaper layer**: static infographic wallpaper (play
-      stats, clock, user quote) with a desktop play icon. Per-OS native glue.
-- [ ] **Phase 5 — Polish**: settings UI, themes, launch at startup.
+- [~] **Phase 4 — Wallpaper layer**: infographic wallpaper renderer (clock,
+      quote, play stats) with a settings/preview screen, and a Rust command
+      that sets it as the desktop wallpaper (**macOS done**; Windows pending).
+      Still to do: the always-on-top desktop play icon.
+- [ ] **Phase 5 — Polish**: themes, launch at startup, Windows wallpaper glue.
 
 ## Development
 

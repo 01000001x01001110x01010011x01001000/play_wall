@@ -260,6 +260,110 @@ body.in-tauri #app {
   font-size: 0.85rem;
 }
 
+/* ---------- Hub header / wallpaper button ---------- */
+
+.hub-header {
+  justify-content: space-between;
+}
+
+.hub-wallpaper-btn {
+  align-self: center;
+  font-size: 0.9rem;
+}
+
+/* ---------- Wallpaper screen ---------- */
+
+.wallpaper-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.wallpaper-preview {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.wallpaper-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ctrl-row > span {
+  flex: 0 0 110px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ctrl-row input[type="text"] {
+  flex: 1;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.toggle-box {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  cursor: pointer;
+}
+
+.chip.on {
+  background: rgba(79, 140, 255, 0.18);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.swatches {
+  display: flex;
+  gap: 10px;
+}
+
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch.on {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.wallpaper-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
 /* ---------- Online room ---------- */
 
 .room-box {

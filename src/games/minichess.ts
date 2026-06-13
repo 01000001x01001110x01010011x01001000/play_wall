@@ -1,3 +1,4 @@
+import { recordResult } from "../stats";
 import type { GameModule, NetSession, PlayMode } from "../types";
 
 /**
@@ -169,6 +170,7 @@ function mount(root: HTMLElement, mode: PlayMode, net?: NetSession): () => void 
   let targets: number[] = [];
   let over = false;
   let opponentLeft = false;
+  let recorded = false;
   /** Which color this client plays in online mode. */
   const myColor: Color = net?.playerIndex === 1 ? "b" : "w";
 
@@ -262,6 +264,16 @@ function mount(root: HTMLElement, mode: PlayMode, net?: NetSession): () => void 
 
     const name = turn === "w" ? "White" : "Black";
     const mineToMove = turn === myColor;
+
+    // record the finished match once (turn = the side that is mated/stalemated)
+    if (!canMove && !recorded && !opponentLeft) {
+      recorded = true;
+      if (mode === "local") {
+        recordResult("minichess", "Mini Chess", "done");
+      } else {
+        recordResult("minichess", "Mini Chess", !inCheck ? "draw" : mineToMove ? "loss" : "win");
+      }
+    }
     status.className = "status-line";
     if (opponentLeft) {
       status.textContent = "Your opponent left the room.";
@@ -300,6 +312,7 @@ function mount(root: HTMLElement, mode: PlayMode, net?: NetSession): () => void 
     selected = null;
     targets = [];
     over = false;
+    recorded = false;
     render();
   }
 

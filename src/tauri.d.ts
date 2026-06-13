@@ -13,5 +13,6 @@ interface TauriWindowHandle {
 interface Window {
   __TAURI__?: {
     window: { getCurrentWindow(): TauriWindowHandle };
+    core: { invoke<T = unknown>(cmd: string, args?: Record<string, unknown>): Promise<T> };
   };
 }

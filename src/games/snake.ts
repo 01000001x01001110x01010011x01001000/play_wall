@@ -1,3 +1,4 @@
+import { recordScore } from "../stats";
 import type { GameModule, PlayMode } from "../types";
 
 const COLS = 20;
@@ -81,6 +82,7 @@ function mount(root: HTMLElement, _mode: PlayMode): () => void {
         hiscore = score;
         localStorage.setItem(HISCORE_KEY, String(hiscore));
       }
+      recordScore("snake", "Snake", score);
       updateText();
       return;
     }

@@ -1,3 +1,4 @@
+import { recordResult } from "../stats";
 import type { GameModule, NetSession, PlayMode } from "../types";
 
 type Mark = "X" | "O";
@@ -69,6 +70,7 @@ function mount(root: HTMLElement, mode: PlayMode, net?: NetSession): () => void 
   let turn: Mark = "X";
   let over = false;
   let opponentLeft = false;
+  let recorded = false;
   let aiTimer: number | undefined;
   /** Which mark this client plays in online mode. */
   const myMark: Mark = net?.playerIndex === 1 ? "O" : "X";
@@ -130,6 +132,17 @@ function mount(root: HTMLElement, mode: PlayMode, net?: NetSession): () => void 
     const w = winner(board);
     over = !!w || isFull(board) || opponentLeft;
 
+    // record the finished match once (skip local 2P abandonment via opponentLeft)
+    if (over && !recorded && !opponentLeft) {
+      recorded = true;
+      if (mode === "local") {
+        recordResult("tictactoe", "Tic-Tac-Toe", "done");
+      } else {
+        const me = mode === "ai" ? "X" : myMark;
+        recordResult("tictactoe", "Tic-Tac-Toe", !w ? "draw" : w.mark === me ? "win" : "loss");
+      }
+    }
+
     for (let i = 0; i < 9; i++) {
       const c = cells[i];
       c.textContent = board[i] ?? "";
@@ -173,6 +186,7 @@ function mount(root: HTMLElement, mode: PlayMode, net?: NetSession): () => void 
     board = Array(9).fill(null);
     turn = "X";
     over = false;
+    recorded = false;
     render();
   }
 

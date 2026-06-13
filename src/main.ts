@@ -1,6 +1,9 @@
 import "./style.css";
 import { games } from "./games";
 import { connect, generateRoomCode } from "./net";
+import { recordTime } from "./stats";
+import { ACCENT_PRESETS, getSettings, saveSettings, type WallpaperSettings } from "./settings";
+import { exportWallpaperPng, renderWallpaper } from "./wallpaper";
 import { MODE_LABELS, type GameModule, type PlayMode } from "./types";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -22,7 +25,14 @@ function showHub() {
 
   const header = document.createElement("div");
   header.className = "hub-header";
-  header.innerHTML = `<span class="hub-title">PlayWall</span>`;
+  const title = document.createElement("span");
+  title.className = "hub-title";
+  title.textContent = "PlayWall";
+  const wallpaperBtn = document.createElement("button");
+  wallpaperBtn.className = "back-btn hub-wallpaper-btn";
+  wallpaperBtn.textContent = "🖼 Wallpaper";
+  wallpaperBtn.addEventListener("click", showWallpaper);
+  header.append(title, wallpaperBtn);
   app.appendChild(header);
 
   const sub = document.createElement("p");
@@ -86,7 +96,13 @@ function showGame(game: GameModule, mode: PlayMode) {
   const stage = document.createElement("div");
   stage.className = "game-stage";
   app.appendChild(stage);
-  activeCleanup = game.mount(stage, mode);
+
+  const start = Date.now();
+  const cleanup = game.mount(stage, mode);
+  activeCleanup = () => {
+    cleanup();
+    recordTime(game.id, game.name, Date.now() - start);
+  };
 }
 
 /**
@@ -150,12 +166,157 @@ function showOnlineRoom(game: GameModule, code: string) {
         : "Connected! Your friend moves first.";
     stage.appendChild(youAre);
 
+    const start = Date.now();
     const gameCleanup = game.mount(stage, "online", net);
     activeCleanup = () => {
       gameCleanup();
       net.leave();
+      recordTime(game.id, game.name, Date.now() - start);
     };
   });
+}
+
+/**
+ * The wallpaper screen: a live preview of the infographic plus controls to
+ * edit the quote, toggle widgets, and pick an accent. Inside Tauri it can set
+ * the image as the real desktop wallpaper; in the browser it downloads a PNG.
+ */
+function showWallpaper() {
+  clearScreen();
+  app.appendChild(gameHeader("Wallpaper", showHub));
+
+  const settings = getSettings();
+
+  const wrap = document.createElement("div");
+  wrap.className = "wallpaper-screen";
+
+  // --- live preview (rendered at the screen's aspect ratio) ---
+  const aspect = window.screen.width / window.screen.height || 16 / 10;
+  const preview = document.createElement("canvas");
+  preview.className = "wallpaper-preview";
+  const rerender = () =>
+    renderWallpaper(preview, { width: 1200, height: Math.round(1200 / aspect), settings });
+  rerender();
+  wrap.appendChild(preview);
+
+  // --- controls ---
+  const controls = document.createElement("div");
+  controls.className = "wallpaper-controls";
+
+  const update = (patch: Partial<WallpaperSettings>) => {
+    Object.assign(settings, patch);
+    saveSettings(settings);
+    rerender();
+  };
+
+  // quote
+  const quoteLabel = document.createElement("label");
+  quoteLabel.className = "ctrl-row";
+  quoteLabel.innerHTML = "<span>Your quote</span>";
+  const quoteInput = document.createElement("input");
+  quoteInput.type = "text";
+  quoteInput.maxLength = 80;
+  quoteInput.value = settings.quote;
+  quoteInput.addEventListener("input", () => update({ quote: quoteInput.value }));
+  quoteLabel.appendChild(quoteInput);
+  controls.appendChild(quoteLabel);
+
+  // widget toggles
+  const toggles: Array<[keyof WallpaperSettings, string]> = [
+    ["showClock", "Clock & date"],
+    ["showQuote", "Quote"],
+    ["showStats", "Play stats"],
+  ];
+  const toggleRow = document.createElement("div");
+  toggleRow.className = "ctrl-row";
+  toggleRow.innerHTML = "<span>Show</span>";
+  const toggleBox = document.createElement("div");
+  toggleBox.className = "toggle-box";
+  for (const [key, label] of toggles) {
+    const btn = document.createElement("button");
+    btn.className = "chip";
+    btn.textContent = label;
+    btn.classList.toggle("on", settings[key] as boolean);
+    btn.addEventListener("click", () => {
+      const next = !(settings[key] as boolean);
+      update({ [key]: next } as Partial<WallpaperSettings>);
+      btn.classList.toggle("on", next);
+    });
+    toggleBox.appendChild(btn);
+  }
+  toggleRow.appendChild(toggleBox);
+  controls.appendChild(toggleRow);
+
+  // accent
+  const accentRow = document.createElement("div");
+  accentRow.className = "ctrl-row";
+  accentRow.innerHTML = "<span>Accent</span>";
+  const swatches = document.createElement("div");
+  swatches.className = "swatches";
+  for (const preset of ACCENT_PRESETS) {
+    const sw = document.createElement("button");
+    sw.className = "swatch";
+    sw.style.background = preset.value;
+    sw.title = preset.name;
+    sw.classList.toggle("on", settings.accent === preset.value);
+    sw.addEventListener("click", () => {
+      update({ accent: preset.value });
+      swatches.querySelectorAll(".swatch").forEach((e) => e.classList.remove("on"));
+      sw.classList.add("on");
+    });
+    swatches.appendChild(sw);
+  }
+  accentRow.appendChild(swatches);
+  controls.appendChild(accentRow);
+
+  // actions
+  const actions = document.createElement("div");
+  actions.className = "wallpaper-actions";
+  const status = document.createElement("p");
+  status.className = "hint";
+
+  if (window.__TAURI__) {
+    const setBtn = document.createElement("button");
+    setBtn.className = "action-btn";
+    setBtn.textContent = "Set as desktop wallpaper";
+    setBtn.addEventListener("click", async () => {
+      setBtn.disabled = true;
+      status.textContent = "Generating wallpaper…";
+      try {
+        const { base64 } = exportWallpaperPng();
+        await window.__TAURI__!.core.invoke("set_wallpaper", { pngBase64: base64 });
+        status.textContent = "Done — your desktop wallpaper is updated. 🎉";
+      } catch (err) {
+        status.textContent = `Couldn't set wallpaper: ${err}`;
+      } finally {
+        setBtn.disabled = false;
+      }
+    });
+    actions.appendChild(setBtn);
+  }
+
+  const dlBtn = document.createElement("button");
+  dlBtn.className = window.__TAURI__ ? "back-btn" : "action-btn";
+  dlBtn.textContent = "Download image";
+  dlBtn.addEventListener("click", () => {
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = document.createElement("canvas");
+    renderWallpaper(canvas, {
+      width: Math.round(window.screen.width * dpr),
+      height: Math.round(window.screen.height * dpr),
+      settings,
+    });
+    const link = document.createElement("a");
+    link.download = "playwall-wallpaper.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    status.textContent = "Saved a PNG you can set as your wallpaper manually.";
+  });
+  actions.appendChild(dlBtn);
+
+  controls.append(actions, status);
+  wrap.appendChild(controls);
+  app.appendChild(wrap);
 }
 
 function gameHeader(title: string, onBack: () => void): HTMLElement {
