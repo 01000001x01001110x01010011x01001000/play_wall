@@ -294,10 +294,11 @@ body.icon-mode #app {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* hidden in the wallpaper: invisible and shrunk until the cursor nears it */
-  opacity: 0;
-  transform: scale(0.7);
-  filter: saturate(0.55);
+  /* a faint ghost in the wallpaper — findable, but unobtrusive — that lights
+     up fully when the cursor nears it */
+  opacity: 0.4;
+  transform: scale(0.82);
+  filter: saturate(0.7);
   box-shadow: none;
   transition:
     opacity 0.25s ease,
