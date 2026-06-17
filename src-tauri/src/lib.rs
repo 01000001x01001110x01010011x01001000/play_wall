@@ -6,6 +6,12 @@ use tauri::{
     LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
+/// The wallpaper file we last applied. A background watcher re-applies it when
+/// the active macOS Space doesn't have it yet (macOS keeps wallpaper per-Space).
+#[cfg(target_os = "macos")]
+static WALLPAPER_PATH: std::sync::LazyLock<std::sync::Mutex<Option<std::path::PathBuf>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(None));
+
 fn show_main_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
@@ -92,12 +98,28 @@ fn set_wallpaper(app: tauri::AppHandle, png_base64: String) -> Result<(), String
         .map_err(|e| format!("no app data dir: {e}"))?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
-    // Remove wallpapers we wrote earlier — macOS caches by path, so a fresh,
-    // unique filename each time guarantees the desktop actually refreshes.
+    // A fresh, unique filename each time forces macOS (which caches by path) to
+    // actually refresh. But we must NOT delete a file that another Space is
+    // still showing, or that Space would go blank — so skip any file currently
+    // in use. The per-Space watcher moves every Space onto the newest file,
+    // after which the stragglers get cleaned up on a later call.
+    let in_use = {
+        #[cfg(target_os = "macos")]
+        {
+            current_wallpaper()
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            String::new()
+        }
+    };
     if let Ok(entries) = std::fs::read_dir(&dir) {
         for entry in entries.flatten() {
-            if entry.file_name().to_string_lossy().starts_with("wallpaper-") {
-                let _ = std::fs::remove_file(entry.path());
+            let path = entry.path();
+            if entry.file_name().to_string_lossy().starts_with("wallpaper-")
+                && !in_use.contains(&*path.to_string_lossy())
+            {
+                let _ = std::fs::remove_file(path);
             }
         }
     }
@@ -109,7 +131,43 @@ fn set_wallpaper(app: tauri::AppHandle, png_base64: String) -> Result<(), String
     let path = dir.join(format!("wallpaper-{ts}.png"));
     std::fs::write(&path, &bytes).map_err(|e| format!("couldn't save image: {e}"))?;
 
+    // remember it so the per-Space watcher can keep other Spaces in sync
+    #[cfg(target_os = "macos")]
+    {
+        *WALLPAPER_PATH.lock().unwrap() = Some(path.clone());
+    }
+
     set_desktop_wallpaper(&path)
+}
+
+/// Read the wallpaper path(s) of the currently active Space (one per display).
+#[cfg(target_os = "macos")]
+fn current_wallpaper() -> String {
+    std::process::Command::new("osascript")
+        .arg("-e")
+        .arg("tell application \"System Events\" to tell every desktop to get picture")
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+        .unwrap_or_default()
+}
+
+/// macOS sets wallpaper only for the Space you're looking at. This watcher
+/// notices when you switch to a Space that still shows the old wallpaper and
+/// re-applies the current one — so every Space ends up matching, without
+/// re-setting (and flickering) Spaces that are already correct.
+#[cfg(target_os = "macos")]
+fn start_wallpaper_watcher() {
+    std::thread::spawn(|| loop {
+        std::thread::sleep(std::time::Duration::from_secs(4));
+        let target = WALLPAPER_PATH.lock().unwrap().clone();
+        if let Some(path) = target {
+            let p = path.to_string_lossy().into_owned();
+            if !current_wallpaper().contains(&p) {
+                let _ = set_desktop_wallpaper(&path);
+            }
+        }
+    });
 }
 
 #[cfg(target_os = "macos")]
@@ -169,6 +227,10 @@ pub fn run() {
                 .build(app)?;
 
             create_icon_window(app.handle())?;
+
+            // keep every macOS Space showing the current wallpaper
+            #[cfg(target_os = "macos")]
+            start_wallpaper_watcher();
 
             Ok(())
         })
