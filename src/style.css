@@ -294,9 +294,9 @@ body.icon-mode #app {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* submerged: faint, shrunk, desaturated, flush with the wallpaper */
-  opacity: 0.3;
-  transform: scale(0.78);
+  /* hidden in the wallpaper: invisible and shrunk until the cursor nears it */
+  opacity: 0;
+  transform: scale(0.7);
   filter: saturate(0.55);
   box-shadow: none;
   transition:
@@ -414,6 +414,12 @@ body.icon-mode #app {
 .swatch.on {
   border-color: var(--text);
   box-shadow: 0 0 0 2px var(--bg);
+}
+
+.today-quote {
+  font-style: italic;
+  color: var(--text);
+  font-size: 0.95rem;
 }
 
 .wallpaper-actions {

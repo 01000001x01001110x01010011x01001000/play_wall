@@ -1,16 +1,26 @@
 /**
- * User preferences for the wallpaper infographic, persisted in localStorage.
+ * User preferences for the wallpaper, persisted in localStorage.
  */
 
 const KEY = "playwall.settings.v1";
 
+export type WallpaperStyle = "motivation" | "infographic";
+
 export interface WallpaperSettings {
-  /** Personal quote shown on the wallpaper. */
+  /** Which wallpaper look to render. */
+  style: WallpaperStyle;
+  /**
+   * When true, the quote rotates daily and the app sets the wallpaper
+   * automatically each day. When false, the user's own `quote` is used and
+   * the wallpaper is only set manually.
+   */
+  autoDaily: boolean;
+  /** Personal quote, used when autoDaily is off. */
   quote: string;
+  // Infographic-only widgets:
   showClock: boolean;
-  showQuote: boolean;
   showStats: boolean;
-  /** Accent color (hex) used for highlights and the glow. */
+  /** Accent color (hex) for the infographic style's highlights and glow. */
   accent: string;
 }
 
@@ -23,9 +33,10 @@ export const ACCENT_PRESETS = [
 ];
 
 const DEFAULTS: WallpaperSettings = {
-  quote: "One more game.",
+  style: "motivation",
+  autoDaily: true,
+  quote: "Do hard things",
   showClock: true,
-  showQuote: true,
   showStats: true,
   accent: "#4f8cff",
 };

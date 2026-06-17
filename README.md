@@ -1,8 +1,10 @@
 # PlayWall
 
-A desktop wallpaper app with built-in mini games — play solo, against the
-computer, or (coming soon) with a friend over the internet via a shared room
-link. Targets Windows and macOS.
+A wallpaper-first desktop app: your desktop shows a motivational wallpaper
+(bold text on black, the quote rotating daily), with a play icon tucked in the
+top-right corner that stays hidden until your cursor nears it. Click it to play
+built-in mini games — solo, against the computer, or with a friend over a
+shared room link. Targets Windows and macOS.
 
 ## Roadmap
 

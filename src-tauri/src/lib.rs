@@ -41,8 +41,9 @@ fn create_icon_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     if let Ok(Some(monitor)) = win.primary_monitor() {
         let scale = monitor.scale_factor();
         let screen = monitor.size().to_logical::<f64>(scale);
+        // top-right corner (a little below the menu bar)
         let x = screen.width - ICON_WINDOW - ICON_MARGIN;
-        let y = screen.height - ICON_WINDOW - ICON_MARGIN;
+        let y = ICON_MARGIN;
         let _ = win.set_size(LogicalSize::new(ICON_WINDOW, ICON_WINDOW));
         let _ = win.set_position(LogicalPosition::new(x, y));
     }

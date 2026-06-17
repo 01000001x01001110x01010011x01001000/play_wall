@@ -2,6 +2,7 @@ import "./style.css";
 import { games } from "./games";
 import { connect, generateRoomCode } from "./net";
 import { recordTime } from "./stats";
+import { dailyQuote } from "./quotes";
 import { ACCENT_PRESETS, getSettings, saveSettings, type WallpaperSettings } from "./settings";
 import { exportWallpaperPng, renderWallpaper } from "./wallpaper";
 import { MODE_LABELS, type GameModule, type PlayMode } from "./types";
@@ -209,65 +210,114 @@ function showWallpaper() {
     rerender();
   };
 
-  // quote
-  const quoteLabel = document.createElement("label");
-  quoteLabel.className = "ctrl-row";
-  quoteLabel.innerHTML = "<span>Your quote</span>";
-  const quoteInput = document.createElement("input");
-  quoteInput.type = "text";
-  quoteInput.maxLength = 80;
-  quoteInput.value = settings.quote;
-  quoteInput.addEventListener("input", () => update({ quote: quoteInput.value }));
-  quoteLabel.appendChild(quoteInput);
-  controls.appendChild(quoteLabel);
+  // small builders for the option rows
+  const row = (label: string): HTMLDivElement => {
+    const r = document.createElement("div");
+    r.className = "ctrl-row";
+    r.innerHTML = `<span>${label}</span>`;
+    return r;
+  };
+  const chip = (label: string, on: boolean, onClick: () => void): HTMLButtonElement => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = label;
+    b.classList.toggle("on", on);
+    b.addEventListener("click", onClick);
+    return b;
+  };
 
-  // widget toggles
-  const toggles: Array<[keyof WallpaperSettings, string]> = [
-    ["showClock", "Clock & date"],
-    ["showQuote", "Quote"],
-    ["showStats", "Play stats"],
-  ];
-  const toggleRow = document.createElement("div");
-  toggleRow.className = "ctrl-row";
-  toggleRow.innerHTML = "<span>Show</span>";
-  const toggleBox = document.createElement("div");
-  toggleBox.className = "toggle-box";
-  for (const [key, label] of toggles) {
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.textContent = label;
-    btn.classList.toggle("on", settings[key] as boolean);
-    btn.addEventListener("click", () => {
-      const next = !(settings[key] as boolean);
-      update({ [key]: next } as Partial<WallpaperSettings>);
-      btn.classList.toggle("on", next);
-    });
-    toggleBox.appendChild(btn);
-  }
-  toggleRow.appendChild(toggleBox);
-  controls.appendChild(toggleRow);
+  // dynamic options — rebuilt when the style or daily toggle changes, since
+  // those change which controls are relevant
+  const options = document.createElement("div");
+  options.className = "wallpaper-controls";
 
-  // accent
-  const accentRow = document.createElement("div");
-  accentRow.className = "ctrl-row";
-  accentRow.innerHTML = "<span>Accent</span>";
-  const swatches = document.createElement("div");
-  swatches.className = "swatches";
-  for (const preset of ACCENT_PRESETS) {
-    const sw = document.createElement("button");
-    sw.className = "swatch";
-    sw.style.background = preset.value;
-    sw.title = preset.name;
-    sw.classList.toggle("on", settings.accent === preset.value);
-    sw.addEventListener("click", () => {
-      update({ accent: preset.value });
-      swatches.querySelectorAll(".swatch").forEach((e) => e.classList.remove("on"));
-      sw.classList.add("on");
-    });
-    swatches.appendChild(sw);
+  function buildOptions() {
+    options.innerHTML = "";
+
+    // style
+    const styleRow = row("Style");
+    const styleBox = document.createElement("div");
+    styleBox.className = "toggle-box";
+    ([["motivation", "Motivation"], ["infographic", "Infographic"]] as const).forEach(
+      ([val, label]) =>
+        styleBox.appendChild(
+          chip(label, settings.style === val, () => {
+            update({ style: val });
+            buildOptions();
+          }),
+        ),
+    );
+    styleRow.appendChild(styleBox);
+    options.appendChild(styleRow);
+
+    // daily rotation / auto-set
+    const dailyRow = row("Daily");
+    const dailyBox = document.createElement("div");
+    dailyBox.className = "toggle-box";
+    dailyBox.appendChild(
+      chip("Change quote daily & auto-set", settings.autoDaily, () => {
+        update({ autoDaily: !settings.autoDaily });
+        buildOptions();
+      }),
+    );
+    dailyRow.appendChild(dailyBox);
+    options.appendChild(dailyRow);
+
+    if (settings.autoDaily) {
+      const todayRow = row("Today");
+      const q = document.createElement("div");
+      q.className = "today-quote";
+      q.textContent = `“${dailyQuote()}”`;
+      todayRow.appendChild(q);
+      options.appendChild(todayRow);
+    } else {
+      const qRow = row("Your quote");
+      const input = document.createElement("input");
+      input.type = "text";
+      input.maxLength = 80;
+      input.value = settings.quote;
+      input.addEventListener("input", () => update({ quote: input.value }));
+      qRow.appendChild(input);
+      options.appendChild(qRow);
+    }
+
+    if (settings.style === "infographic") {
+      const showRow = row("Show");
+      const showBox = document.createElement("div");
+      showBox.className = "toggle-box";
+      ([["showClock", "Clock & date"], ["showStats", "Play stats"]] as const).forEach(
+        ([key, label]) =>
+          showBox.appendChild(
+            chip(label, settings[key], () => {
+              update({ [key]: !settings[key] } as Partial<WallpaperSettings>);
+              buildOptions();
+            }),
+          ),
+      );
+      showRow.appendChild(showBox);
+      options.appendChild(showRow);
+
+      const accentRow = row("Accent");
+      const swatches = document.createElement("div");
+      swatches.className = "swatches";
+      for (const preset of ACCENT_PRESETS) {
+        const sw = document.createElement("button");
+        sw.className = "swatch";
+        sw.style.background = preset.value;
+        sw.title = preset.name;
+        sw.classList.toggle("on", settings.accent === preset.value);
+        sw.addEventListener("click", () => {
+          update({ accent: preset.value });
+          buildOptions();
+        });
+        swatches.appendChild(sw);
+      }
+      accentRow.appendChild(swatches);
+      options.appendChild(accentRow);
+    }
   }
-  accentRow.appendChild(swatches);
-  controls.appendChild(accentRow);
+  buildOptions();
+  controls.appendChild(options);
 
   // actions
   const actions = document.createElement("div");
@@ -408,6 +458,36 @@ function renderIcon() {
 
   sense.appendChild(btn);
   app.appendChild(sense);
+
+  startDailyWallpaper();
+}
+
+/**
+ * The icon window is always running (it lives on the desktop), so it's the
+ * natural place to keep the wallpaper up to date: set it on launch, then
+ * re-set it whenever the calendar day changes (picking up the new daily quote).
+ */
+function startDailyWallpaper() {
+  const tauri = window.__TAURI__;
+  if (!tauri) return;
+
+  let lastDay = "";
+  const apply = () => {
+    if (!getSettings().autoDaily) return;
+    const today = new Date().toDateString();
+    if (today === lastDay) return;
+    lastDay = today;
+    try {
+      const { base64 } = exportWallpaperPng();
+      void tauri.core.invoke("set_wallpaper", { pngBase64: base64 });
+    } catch {
+      /* ignore — will retry on the next tick */
+    }
+  };
+
+  apply();
+  // re-check periodically; cheap, and catches the midnight rollover
+  window.setInterval(apply, 5 * 60 * 1000);
 }
 
 /** Entry: a #room=…&game=… link goes straight into the room. */

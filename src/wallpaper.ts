@@ -1,3 +1,4 @@
+import { dailyQuote } from "./quotes";
 import {
   formatDuration,
   getStats,
@@ -8,9 +9,12 @@ import {
 import { getSettings, type WallpaperSettings } from "./settings";
 
 /**
- * Renders the static infographic wallpaper onto a canvas. Everything scales
- * off the canvas height, so the same layout renders crisply at any resolution
- * — a small preview in the app and a full-screen export use identical code.
+ * Renders the wallpaper onto a canvas. Two looks:
+ *  - "motivation": a big bold uppercase line on black (the default), like a
+ *    motivational poster; the quote rotates daily.
+ *  - "infographic": clock, date, quote, and play-stat cards.
+ * Everything scales off the canvas height, so the same code renders a small
+ * in-app preview and a full-resolution export.
  */
 
 export interface RenderOptions {
@@ -18,9 +22,124 @@ export interface RenderOptions {
   height: number;
   stats?: Stats;
   settings?: WallpaperSettings;
-  /** Snapshot time for the clock; defaults to now. */
+  /** Snapshot time (clock + daily quote); defaults to now. */
   now?: Date;
 }
+
+export function renderWallpaper(canvas: HTMLCanvasElement, opts: RenderOptions) {
+  const { width: W, height: H } = opts;
+  const settings = opts.settings ?? getSettings();
+  const now = opts.now ?? new Date();
+
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  const quote = settings.autoDaily ? dailyQuote(now) : settings.quote;
+
+  if (settings.style === "motivation") {
+    renderMotivation(ctx, W, H, quote);
+  } else {
+    renderInfographic(ctx, W, H, settings, opts.stats ?? getStats(), now, quote);
+  }
+}
+
+/** Render at the real display resolution and return a base64 PNG (no prefix). */
+export function exportWallpaperPng(): { base64: string; width: number; height: number } {
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.round(window.screen.width * dpr);
+  const height = Math.round(window.screen.height * dpr);
+  const canvas = document.createElement("canvas");
+  renderWallpaper(canvas, { width, height });
+  const dataUrl = canvas.toDataURL("image/png");
+  return { base64: dataUrl.split(",")[1], width, height };
+}
+
+// ============================ motivation ============================
+
+function renderMotivation(ctx: CanvasRenderingContext2D, W: number, H: number, quote: string) {
+  // deep black background
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, W, H);
+
+  // drop sentence punctuation so stacked words read cleanly (LESS / TALK / MORE / DO)
+  const words = quote.trim().replace(/[.,!?]/g, "").toUpperCase().split(/\s+/);
+  // ≤4 words → one word per line (the stacked poster look); else group by 3
+  const lines: string[] = [];
+  if (words.length <= 4) {
+    lines.push(...words);
+  } else {
+    for (let i = 0; i < words.length; i += 3) lines.push(words.slice(i, i + 3).join(" "));
+  }
+
+  const maxW = W * 0.66;
+  const maxH = H * 0.74;
+  const font = (size: number) =>
+    `800 ${size}px "Impact", "Haettenschweiler", "Arial Narrow", "Oswald", sans-serif`;
+
+  // shrink the type until the whole block fits
+  let size = H * 0.24;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (; size > 12; size -= 2) {
+    ctx.font = font(size);
+    const lineH = size * 1.04;
+    const widest = Math.max(...lines.map((l) => ctx.measureText(l).width));
+    if (widest <= maxW && lineH * lines.length <= maxH) break;
+  }
+
+  ctx.font = font(size);
+  try {
+    // tighten the letters slightly for the condensed poster feel
+    (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${-size * 0.01}px`;
+  } catch {
+    /* letterSpacing unsupported — fine */
+  }
+
+  const lineH = size * 1.04;
+  let y = H / 2 - (lineH * (lines.length - 1)) / 2;
+  ctx.fillStyle = "#d7d7d7";
+  for (const line of lines) {
+    ctx.fillText(line, W / 2, y);
+    y += lineH;
+  }
+
+  try {
+    (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = "0px";
+  } catch {
+    /* ignore */
+  }
+
+  applyGrain(ctx, W, H);
+}
+
+/** A faint film-grain overlay for the worn, printed look. */
+function applyGrain(ctx: CanvasRenderingContext2D, W: number, H: number) {
+  const tileSize = 160;
+  const tile = document.createElement("canvas");
+  tile.width = tileSize;
+  tile.height = tileSize;
+  const tctx = tile.getContext("2d")!;
+  const img = tctx.createImageData(tileSize, tileSize);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = (120 + Math.random() * 135) | 0;
+    img.data[i] = v;
+    img.data[i + 1] = v;
+    img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  tctx.putImageData(img, 0, 0);
+
+  const pattern = ctx.createPattern(tile, "repeat");
+  if (!pattern) return;
+  ctx.save();
+  ctx.globalAlpha = 0.045;
+  ctx.globalCompositeOperation = "overlay";
+  ctx.fillStyle = pattern;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// ============================ infographic ============================
 
 function greeting(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -40,20 +159,19 @@ function roundRect(
   ctx.roundRect(x, y, w, h, r);
 }
 
-export function renderWallpaper(canvas: HTMLCanvasElement, opts: RenderOptions) {
-  const { width: W, height: H } = opts;
-  const stats = opts.stats ?? getStats();
-  const settings = opts.settings ?? getSettings();
-  const now = opts.now ?? new Date();
-
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
-  const s = H / 1600; // scale factor: design is tuned at 1600px tall
+function renderInfographic(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  settings: WallpaperSettings,
+  stats: Stats,
+  now: Date,
+  quote: string,
+) {
+  const s = H / 1600;
   const margin = W * 0.07;
   const accent = settings.accent;
 
-  // ---- background: deep gradient + accent glow ----
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, "#10131c");
   bg.addColorStop(1, "#080a10");
@@ -66,7 +184,7 @@ export function renderWallpaper(canvas: HTMLCanvasElement, opts: RenderOptions) 
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
-  // ---- brand ----
+  ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = accent;
   ctx.font = `700 ${44 * s}px "Avenir Next", "Segoe UI", system-ui, sans-serif`;
@@ -74,8 +192,7 @@ export function renderWallpaper(canvas: HTMLCanvasElement, opts: RenderOptions) 
   ctx.fillStyle = "#e8ecf4";
   ctx.fillText("PlayWall", margin + 60 * s, margin + 36 * s);
 
-  // ---- clock + date ----
-  let cursorY = H * 0.30;
+  let cursorY = H * 0.3;
   if (settings.showClock) {
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String(now.getMinutes()).padStart(2, "0");
@@ -94,18 +211,16 @@ export function renderWallpaper(canvas: HTMLCanvasElement, opts: RenderOptions) 
     cursorY += 150 * s;
   }
 
-  // ---- quote ----
-  if (settings.showQuote && settings.quote.trim()) {
+  if (quote.trim()) {
     ctx.fillStyle = "#c7cedd";
     ctx.font = `italic 300 ${64 * s}px "Avenir Next", Georgia, serif`;
-    const lines = wrapText(ctx, `"${settings.quote.trim()}"`, W - margin * 2);
+    const lines = wrapText(ctx, `"${quote.trim()}"`, W - margin * 2);
     for (const line of lines) {
       cursorY += 86 * s;
       ctx.fillText(line, margin, cursorY);
     }
   }
 
-  // ---- stat cards ----
   if (settings.showStats) {
     const snake = stats.perGame["snake"];
     const cards: Array<{ label: string; value: string }> = [
@@ -134,31 +249,18 @@ export function renderWallpaper(canvas: HTMLCanvasElement, opts: RenderOptions) 
       ctx.fillText(card.label.toUpperCase(), x + 32 * s, cardY + 58 * s);
 
       ctx.fillStyle = "#f4f6fb";
-      ctx.font = `600 ${64 * s}px "Avenir Next", "Segoe UI", system-ui, sans-serif`;
       const value = fitText(ctx, card.value, cardW - 64 * s, 64 * s, s);
       ctx.font = `600 ${value.size}px "Avenir Next", "Segoe UI", system-ui, sans-serif`;
       ctx.fillText(value.text, x + 32 * s, cardY + 140 * s);
     });
 
-    // play hint above the cards
     ctx.fillStyle = hexAlpha(accent, 0.9);
     ctx.font = `600 ${34 * s}px "Avenir Next", "Segoe UI", system-ui, sans-serif`;
     ctx.fillText("▶  Click the PlayWall icon to play", margin, cardY - 44 * s);
   }
 }
 
-/** Render at the real display resolution and return a base64 PNG (no prefix). */
-export function exportWallpaperPng(): { base64: string; width: number; height: number } {
-  const dpr = window.devicePixelRatio || 1;
-  const width = Math.round(window.screen.width * dpr);
-  const height = Math.round(window.screen.height * dpr);
-  const canvas = document.createElement("canvas");
-  renderWallpaper(canvas, { width, height });
-  const dataUrl = canvas.toDataURL("image/png");
-  return { base64: dataUrl.split(",")[1], width, height };
-}
-
-// ---- small canvas helpers ----
+// ---- shared canvas helpers ----
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(" ");
@@ -174,10 +276,9 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
     }
   }
   if (line) lines.push(line);
-  return lines.slice(0, 3); // cap at 3 lines
+  return lines.slice(0, 3);
 }
 
-/** Shrink a value's font until it fits the card width. */
 function fitText(
   ctx: CanvasRenderingContext2D,
   text: string,
